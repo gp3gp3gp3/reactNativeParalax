@@ -41,8 +41,14 @@ export default class reactNativeParalax extends Component {
   constructor () {
     super()
     this.state = {
-      animatedScroll: new Animated.Value(0)
+      animatedScroll: new Animated.Value(0),
+      scrollEnabled: true
     }
+    this.handleFocus = this.handleFocus.bind(this)
+  }
+
+  handleFocus (focused) {
+    this.setState({ scrollEnabled: !focused })
   }
 
   render () {
@@ -51,6 +57,7 @@ export default class reactNativeParalax extends Component {
         <ScrollView
           pagingEnabled
           horizontal
+          scrollEnabled={this.state.scrollEnabled}
           scrollEventThrottle={16}
           onScroll={
             Animated.event([
@@ -69,6 +76,8 @@ export default class reactNativeParalax extends Component {
               key={i}
               {...image}
               translateX={getInterpolate(this.state.animatedScroll, i, Images.length)}
+              onFocus={this.handleFocus}
+              focused={!this.state.scrollEnabled}
             />
           ))}
           {Array.apply(null, { length: Images.length + 1 }).map((_, i) => getSeparator(i))}
