@@ -2,8 +2,6 @@ import React, { Component } from 'react'
 import {
   AppRegistry,
   StyleSheet,
-  Image,
-  Text,
   View,
   ScrollView,
   Dimensions,
@@ -31,7 +29,7 @@ const getInterpolate = (animatedScroll, i, imageLength) => {
   })
 }
 
-const { width, height } = Dimensions.get('window')
+const { width } = Dimensions.get('window')
 
 const getSeparator = i => (
   <View
