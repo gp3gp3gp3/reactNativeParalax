@@ -11,6 +11,38 @@ import Heart from './heart'
 
 const { width, height } = Dimensions.get('window')
 
+const getTransformationAnimation = (animation, scale, y, x, rotate, opacity) => {
+  const scaleAnimation = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, scale]
+  })
+  const xAnimation = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, x]
+  })
+  const yAnimation = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, y]
+  })
+  const rotateAnimation = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', rotate]
+  })
+  const opacityAnimation = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, opacity]
+  })
+  return {
+    opacity: opacityAnimation,
+    transform: [
+      { scale: scaleAnimation },
+      { translateX: xAnimation },
+      { translateY: yAnimation },
+      { rotate: rotateAnimation }
+    ]
+  }
+}
+
 class Page extends Component {
   constructor () {
     super()
@@ -35,10 +67,29 @@ class Page extends Component {
     this.setState({
       liked: !this.state.liked
     })
-    Animated.spring(this.state.heartScale, {
-      toValue: 2,
-      friction: 3
-    }).start(() => {
+    const showAnimations = this.state.heartAnimations.map(animation => (
+      Animated.spring(animation, {
+        toValue: 1,
+        friction: 4
+      })
+    ))
+    const hideAnimations = this.state.heartAnimations.map(animation => (
+      Animated.timing(animation, {
+        toValue: 0,
+        duration: 50
+      })
+    )).reverse()
+    Animated.parallel([
+      Animated.spring(this.state.heartScale, {
+        toValue: 2,
+        friction: 3
+      }),
+      Animated.sequence([
+        Animated.stagger(50, showAnimations),
+        Animated.delay(100),
+        Animated.stagger(50, hideAnimations)
+      ])
+    ]).start(() => {
       this.state.heartScale.setValue(0)
     })
   }
@@ -117,10 +168,16 @@ class Page extends Component {
           </Animated.View>
         </TouchableWithoutFeedback>
         <Animated.View style={[styles.callout, calloutStyle]}>
-          <View>
+          <View style={{alignItems: 'center'}}>
+            <Heart filled style={[styles.heart, getTransformationAnimation(this.state.heartAnimations[5], 0.4, -280, 0, '10deg', 0.7)]} />
+            <Heart filled style={[styles.heart, getTransformationAnimation(this.state.heartAnimations[4], 0.7, -120, 40, '45deg', 0.5)]} />
+            <Heart filled style={[styles.heart, getTransformationAnimation(this.state.heartAnimations[3], 0.8, -120, -40, '-45deg', 0.3)]} />
+            <Heart filled style={[styles.heart, getTransformationAnimation(this.state.heartAnimations[2], 0.3, -150, 120, '-35deg', 0.6)]} />
+            <Heart filled style={[styles.heart, getTransformationAnimation(this.state.heartAnimations[1], 0.3, -120, -120, '-35deg', 0.7)]} />
+            <Heart filled style={[styles.heart, getTransformationAnimation(this.state.heartAnimations[0], 0.8, -60, 0, '35deg', 0.8)]} />
             <TouchableWithoutFeedback onPress={this.triggerLike}>
               <Animated.View style={heartButtonStyle}>
-                <Heart style={{alignSelf: 'center'}} filled={this.state.liked} />
+                <Heart filled={this.state.liked} />
               </Animated.View>
             </TouchableWithoutFeedback>
           </View>
@@ -162,6 +219,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0
+  },
+  heart: {
+    position: 'absolute',
+    // top: 0,
+    // left: 0
   }
 })
 
