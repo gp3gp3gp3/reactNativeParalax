@@ -7,6 +7,7 @@ import {
   Dimensions,
   TouchableWithoutFeedback
 } from 'react-native'
+import Heart from './heart'
 
 const { width, height } = Dimensions.get('window')
 
@@ -14,9 +15,32 @@ class Page extends Component {
   constructor () {
     super()
     this.state = {
-      scale: new Animated.Value(1)
+      scale: new Animated.Value(1),
+      liked: false,
+      heartScale: new Animated.Value(0),
+      heartAnimations: [
+        new Animated.Value(0),
+        new Animated.Value(0),
+        new Animated.Value(0),
+        new Animated.Value(0),
+        new Animated.Value(0),
+        new Animated.Value(0)
+      ]
     }
     this.handlePress = this.handlePress.bind(this)
+    this.triggerLike = this.triggerLike.bind(this)
+  }
+
+  triggerLike () {
+    this.setState({
+      liked: !this.state.liked
+    })
+    Animated.spring(this.state.heartScale, {
+      toValue: 2,
+      friction: 3
+    }).start(() => {
+      this.state.heartScale.setValue(0)
+    })
   }
 
   componentWillMount () {
@@ -69,6 +93,15 @@ class Page extends Component {
       transform: [{ translateY: this.calloutTranslate }]
     }
 
+    const bouncyHeart = this.state.heartScale.interpolate({
+      inputRange: [0, 1, 2],
+      outputRange: [1, 0.8, 1]
+    })
+    const heartButtonStyle = {
+      transform: [
+        { scale: bouncyHeart }
+      ]
+    }
     return (
       <View style={styles.container}>
         <Animated.Image
@@ -85,7 +118,11 @@ class Page extends Component {
         </TouchableWithoutFeedback>
         <Animated.View style={[styles.callout, calloutStyle]}>
           <View>
-            <Text style={styles.title}>{this.props.title}</Text>
+            <TouchableWithoutFeedback onPress={this.triggerLike}>
+              <Animated.View style={heartButtonStyle}>
+                <Heart style={{alignSelf: 'center'}} filled={this.state.liked} />
+              </Animated.View>
+            </TouchableWithoutFeedback>
           </View>
         </Animated.View>
       </View>
