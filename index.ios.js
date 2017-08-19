@@ -3,101 +3,128 @@ import {
   AppRegistry,
   StyleSheet,
   View,
-  ScrollView,
-  Dimensions,
+  TouchableOpacity,
+  Text,
   Animated
 } from 'react-native'
-import Page from './Page'
 
-const Images = [
-  { image: require('./trump1.jpg'), title: 'Yuh Fihred' },
-  { image: require('./trump2.jpg'), title: 'Yuh Fihred' },
-  { image: require('./trump3.jpg'), title: 'Yuh Fihred' }
-]
-
-const getInterpolate = (animatedScroll, i, imageLength) => {
-  const inputRange = [
-    (i - 1) * width,
-    i * width,
-    (i + 1) * width
-  ]
-  const outputRange = i === 0 ? [0, 0, 150] : [-300, 0, 150]
-  return animatedScroll.interpolate({
-    inputRange,
-    outputRange,
-    extrapolate: 'clamp'
-  })
+const getTransformStyle = animation => {
+  return {
+    transform: [
+      { translateY: animation }
+    ]
+  }
 }
 
-const { width } = Dimensions.get('window')
-
-const getSeparator = i => (
-  <View
-    key={i}
-    style={[styles.seperator, { left: (i - 1) * width - 2.5 }]}
-  />
-)
 export default class reactNativeParalax extends Component {
   constructor () {
     super()
     this.state = {
-      animatedScroll: new Animated.Value(0),
-      scrollEnabled: true
+      animate: new Animated.Value(0),
+      fabs: [
+        new Animated.Value(0),
+        new Animated.Value(0),
+        new Animated.Value(0)
+      ]
     }
-    this.handleFocus = this.handleFocus.bind(this)
+    this.open = false
+    this.handlePress = this.handlePress.bind(this)
   }
 
-  handleFocus (focused) {
-    this.setState({ scrollEnabled: !focused })
+  handlePress () {
+    const toValue = this.open ? 0 : 1
+    const flyouts = this.state.fabs.map((value, i) => {
+      return Animated.spring(value, {
+        toValue: (i + 1) * -90 * toValue,
+        friction: 5
+      })
+    })
+
+    Animated.parallel([
+      Animated.timing(this.state.animate, {
+        toValue,
+        duration: 300
+      }),
+      Animated.stagger(30, flyouts)
+    ]).start()
+    this.open = !this.open
   }
 
   render () {
+    const backgroundInterpolate = this.state.animate.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['rgb(90, 34, 153)', 'rgb(36, 11, 63)']
+    })
+    const backgroundStyle = {
+      backgroundColor: backgroundInterpolate
+    }
+    const buttonColorInterpolate = this.state.animate.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['rgb(24, 214, 255)', 'rgb(255, 255, 255)']
+    })
+    const buttonRotate = this.state.animate.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '135deg']
+    })
+    const buttonStyle = {
+      backgroundColor: buttonColorInterpolate,
+      transform: [
+        { rotate: buttonRotate }
+      ]
+    }
     return (
-      <View style={styles.container}>
-        <ScrollView
-          pagingEnabled
-          horizontal
-          scrollEnabled={this.state.scrollEnabled}
-          scrollEventThrottle={16}
-          onScroll={
-            Animated.event([
-              {
-                nativeEvent: {
-                  contentOffset: {
-                    x: this.state.animatedScroll
-                  }
-                }
-              }
-            ])
+      <Animated.View style={[styles.container, backgroundStyle]}>
+        <View style={styles.position}>
+          {
+            this.state.fabs.map((animation, i) => {
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.button, styles.fab, styles.flyout, getTransformStyle(animation)]}
+                  onPress={this.handlePress}
+                />
+              )
+            })
           }
-        >
-          {Images.map((image, i) => (
-            <Page
-              key={i}
-              {...image}
-              translateX={getInterpolate(this.state.animatedScroll, i, Images.length)}
-              onFocus={this.handleFocus}
-              focused={!this.state.scrollEnabled}
-            />
-          ))}
-          {Array.apply(null, { length: Images.length + 1 }).map((_, i) => getSeparator(i))}
-        </ScrollView>
-      </View>
+          <TouchableOpacity onPress={this.handlePress}>
+            <Animated.View style={[styles.button, buttonStyle]}>
+              <Text style={styles.plus}>+</Text>
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     )
   }
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#333'
+    flex: 1
   },
-  seperator: {
-    backgroundColor: '#000',
+  position: {
     position: 'absolute',
-    top: 0,
+    right: 45,
+    bottom: 45
+  },
+  fab: {
+    position: 'absolute',
     bottom: 0,
-    width: 5
+    right: 0
+  },
+  button: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  flyout: {
+    backgroundColor: '#9439FF'
+  },
+  plus: {
+    fontWeight: 'bold',
+    fontSize: 30,
+    color: '#00768F'
   }
 })
 
