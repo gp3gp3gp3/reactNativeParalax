@@ -3,145 +3,148 @@ import {
   AppRegistry,
   StyleSheet,
   View,
-  TouchableWithoutFeedback,
-  Dimensions,
-  Animated
+  TouchableOpacity,
+  Animated,
+  Image,
+  ScrollView,
+  Text
 } from 'react-native'
-
-const { width, height } = Dimensions.get('window')
-const getRandomInt = (min, max) => {
-  min = Math.ceil(min)
-  max = Math.floor(max)
-  return Math.floor(Math.random() * (max - min)) + min
-}
+import Trump from './trump3.jpg'
 
 export default class reactNativeParalax extends Component {
   constructor () {
     super()
     this.state = {
-      hearts: []
+      open: false
     }
 
-    this.handleAddHeart = this.handleAddHeart.bind(this)
+    this.toggleCard = this.toggleCard.bind(this)
   }
 
-  handleAddHeart () {
-    const animation = new Animated.Value(0)
-    this.setState(state => {
-      return {
-        hearts: [
-          ...state.hearts,
-          {
-            animation,
-            start: getRandomInt(100, width - 100)
-          }
-        ]
-      }
-    }, () => {
-      Animated.timing(animation, {
-        toValue: height,
-        duration: 3000
+  componentWillMount () {
+    this.animated = new Animated.Value(0)
+  }
+
+  toggleCard () {
+    this.setState(state => ({
+      open: !state.open
+    }), () => {
+      const toValue = this.state.open ? 1 : 0
+      Animated.timing(this.animated, {
+        toValue,
+        duration: 500
       }).start()
     })
   }
 
   render () {
+    const offsetInterpolate = this.animated.interpolate({
+      inputRange: [0, 1],
+      outputRange: [191, 0]
+    })
+
+    const arrowRotate = this.animated.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['180deg', '0deg']
+    })
+
+    const offsetStyle = {
+      transform: [{
+        translateY: offsetInterpolate
+      }]
+    }
+
+    const arrowStyle = {
+      transform: [{
+        rotate: arrowRotate
+      }]
+    }
+
+    const opacityStyle = {
+      opacity: this.animated
+    }
     return (
       <View style={styles.container}>
-        <TouchableWithoutFeedback onPress={this.handleAddHeart}>
-          <View style={StyleSheet.absoluteFill}>
-            {
-              this.state.hearts.map(({ animation, start }, index) => {
-                const positionInterpolate = animation.interpolate({
-                  inputRange: [0, height],
-                  outputRange: [height - 50, 0]
-                })
-
-                const opacityInterpolate = animation.interpolate({
-                  inputRange: [0, height - 200],
-                  outputRange: [1, 0]
-                })
-
-                const scaleInterpolate = animation.interpolate({
-                  inputRange: [0, 15, 30],
-                  outputRange: [0, 1.2, 1],
-                  extrapolate: 'clamp'
-                })
-
-                const dividedHeight = height / 6
-                const wobbleInterpolate = animation.interpolate({
-                  inputRange: [
-                    0,
-                    dividedHeight * 1,
-                    dividedHeight * 2,
-                    dividedHeight * 3,
-                    dividedHeight * 4,
-                    dividedHeight * 5,
-                    dividedHeight * 6
-                  ],
-                  outputRange: [
-                    0,
-                    15,
-                    -15,
-                    15,
-                    -15,
-                    15,
-                    -15
-                  ],
-                  extrapolate: 'clamp'
-                })
-
-                const heartStyle = {
-                  left: start,
-                  transform: [
-                    { translateY: positionInterpolate },
-                    { scale: scaleInterpolate },
-                    { translateX: wobbleInterpolate }
-                  ],
-                  opacity: opacityInterpolate
-                }
-                return <Heart key={index} style={heartStyle} />
-              })
-            }
-          </View>
-        </TouchableWithoutFeedback>
+        <Image
+          source={Trump}
+          resizeMode='cover'
+          style={styles.background}
+        >
+          <Animated.View style={[styles.card, offsetStyle]}>
+            <TouchableOpacity onPress={this.toggleCard}>
+              <View style={styles.header}>
+                <View>
+                  <Text style={styles.title}>Portland, Oregon</Text>
+                  <Text style={styles.date}>June 24th</Text>
+                </View>
+                <View style={styles.arrowContainer}>
+                  <Animated.Text style={[styles.arrow, arrowStyle]}>↓</Animated.Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+            <Animated.View style={[styles.scrollViewWrap, opacityStyle]}>
+              <ScrollView contentContainerStyle={styles.scrollView}>
+                <Text>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc congue rutrum tortor eu luctus. Pellentesque ut libero a lacus ullamcorper pellentesque non sollicitudin ipsum. Vestibulum faucibus odio eget libero mollis, non pharetra justo luctus. Phasellus sagittis vel nunc at venenatis. Integer feugiat, risus sit amet tempus hendrerit, risus neque ullamcorper lacus, sit amet molestie ante purus sit amet metus. Vivamus at diam maximus, ornare mauris eget, iaculis libero. Nullam non eros lacus. Nunc lorem leo, posuere in tincidunt eu, luctus ut metus. Nam eu tellus et elit dignissim dignissim. Sed sollicitudin turpis nec arcu tincidunt elementum. Aenean ex felis, mattis eget dictum et, pharetra rutrum nibh. Nulla lobortis leo erat, non eleifend mi vulputate sed.
+                </Text>
+              </ScrollView>
+            </Animated.View>
+          </Animated.View>
+        </Image>
       </View>
     )
   }
 }
 
-const Heart = ({ style }) => (
-  <Animated.View style={[styles.heart, style]}>
-    <View style={[styles.heartShape, styles.leftHeart]} />
-    <View style={[styles.heartShape, styles.rightHeart]} />
-  </Animated.View>
-)
-
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#152536'
+  },
+  background: {
+    width: 300,
+    height: 250,
+    borderRadius: 3,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)'
+  },
+  scrollViewWrap: {
     flex: 1
   },
-  heart: {
-    width: 50,
-    height: 50,
-    position: 'absolute'
+  card: {
+    backgroundColor: '#FFF',
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 4,
+    transform: [{
+      translateY: 191
+    }]
   },
-  heartShape: {
-    width: 30,
-    height: 45,
-    position: 'absolute',
-    top: 0,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    backgroundColor: 'darkred'
+  scrollView: {
+    marginTop: 15
   },
-  leftHeart: {
-    transform: [{ rotate: '-45deg' }],
-    left: 5
+  header: {
+    flexDirection: 'row'
   },
-  rightHeart: {
-    transform: [{ rotate: '45deg' }],
-    right: 5
+  title: {
+    fontSize: 24,
+    color: '#333'
+  },
+  date: {
+    fontSize: 18,
+    color: '#333'
+  },
+  arrowContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+    justifyContent: 'center'
+  },
+  arrow: {
+    fontSize: 30,
+    color: '#333'
   }
 })
 
