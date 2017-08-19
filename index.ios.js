@@ -3,85 +3,115 @@ import {
   AppRegistry,
   StyleSheet,
   View,
+  Text,
   ScrollView,
-  Dimensions,
-  Animated
+  Animated,
+  PanResponder,
+  TextInput
 } from 'react-native'
-import Page from './Page'
 
-const Images = [
-  { image: require('./trump1.jpg'), title: 'Yuh Fihred' },
-  { image: require('./trump2.jpg'), title: 'Yuh Fihred' },
-  { image: require('./trump3.jpg'), title: 'Yuh Fihred' }
-]
-
-const getInterpolate = (animatedScroll, i, imageLength) => {
-  const inputRange = [
-    (i - 1) * width,
-    i * width,
-    (i + 1) * width
-  ]
-  const outputRange = i === 0 ? [0, 0, 150] : [-300, 0, 150]
-  return animatedScroll.interpolate({
-    inputRange,
-    outputRange,
-    extrapolate: 'clamp'
-  })
-}
-
-const { width } = Dimensions.get('window')
-
-const getSeparator = i => (
-  <View
-    key={i}
-    style={[styles.seperator, { left: (i - 1) * width - 2.5 }]}
-  />
-)
 export default class reactNativeParalax extends Component {
-  constructor () {
-    super()
-    this.state = {
-      animatedScroll: new Animated.Value(0),
-      scrollEnabled: true
-    }
-    this.handleFocus = this.handleFocus.bind(this)
-  }
+  componentWillMount () {
+    this.animated = new Animated.Value(0)
+    this.animatedMargin = new Animated.Value(0)
+    this.scrollOffset = 0
+    this.contentHeight = 0
+    this.scrollViewHeight = 0
 
-  handleFocus (focused) {
-    this.setState({ scrollEnabled: !focused })
+    this.panResponder = PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        const { dy } = gestureState
+        const totalScrollHeight = this.scrollOffset + this.scrollViewHeight
+        if (
+          (this.scrollOffset <= 0 && dy > 0) ||
+          ((totalScrollHeight >= this.contentHeight) && dy < 0)
+        ) {
+          return true
+        }
+      },
+      onPanResponderMove: (e, gestureState) => {
+        const { dy } = gestureState
+        if (dy < 0) {
+          this.animated.setValue(dy)
+        } else if (dy > 0) {
+          this.animatedMargin.setValue(dy)
+        }
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        const { dy } = gestureState
+        if (dy < -150) {
+          Animated.parallel([
+            Animated.timing(this.animated, {
+              toValue: -400,
+              duration: 150
+            }),
+            Animated.timing(this.animatedMargin, {
+              toValue: 0,
+              duration: 150
+            })
+          ]).start()
+        } else if (dy > -150 && dy < 150) {
+          Animated.parallel([
+            Animated.timing(this.animated, {
+              toValue: 0,
+              duration: 150
+            }),
+            Animated.timing(this.animatedMargin, {
+              toValue: 0,
+              duration: 150
+            })
+          ]).start()
+        } else if (dy > 150) {
+          Animated.timing(this.animated, {
+            toValue: 400,
+            duration: 300
+          }).start()
+        }
+      }
+    })
   }
 
   render () {
+    const spacerStyle = {
+      marginTop: this.animatedMargin
+    }
+    const opacityInterpolate = this.animated.interpolate({
+      inputRange: [-400, 0, 400],
+      outputRange: [0, 1, 0]
+    })
+    const modalStyle = {
+      transform: [
+        { translateY: this.animated }
+      ],
+      opacity: opacityInterpolate
+    }
     return (
       <View style={styles.container}>
-        <ScrollView
-          pagingEnabled
-          horizontal
-          scrollEnabled={this.state.scrollEnabled}
-          scrollEventThrottle={16}
-          onScroll={
-            Animated.event([
-              {
-                nativeEvent: {
-                  contentOffset: {
-                    x: this.state.animatedScroll
-                  }
-                }
-              }
-            ])
-          }
+        <Animated.View style={spacerStyle} />
+        <Animated.View
+          style={[styles.modal, modalStyle]}
+          {...this.panResponder.panHandlers}
         >
-          {Images.map((image, i) => (
-            <Page
-              key={i}
-              {...image}
-              translateX={getInterpolate(this.state.animatedScroll, i, Images.length)}
-              onFocus={this.handleFocus}
-              focused={!this.state.scrollEnabled}
-            />
-          ))}
-          {Array.apply(null, { length: Images.length + 1 }).map((_, i) => getSeparator(i))}
-        </ScrollView>
+          <View style={styles.comments}>
+            <ScrollView
+              scrollEventThrottle={16}
+              onScroll={event => {
+                this.scrollOffset = event.nativeEvent.contentOffset.y
+                this.scrollViewHeight = event.nativeEvent.layoutMeasurement.height
+              }}
+              onContentSizeChange={(contentWidth, contentHeight) => {
+                this.contentHeight = contentHeight
+              }}
+            >
+              <Text style={styles.fakeText}>Top</Text>
+              <View style={styles.fakeComments} />
+              <Text style={styles.fakeText}>Bottom</Text>
+            </ScrollView>
+          </View>
+          <View style={styles.inputWrap}>
+            <TextInput style={styles.textInput} />
+          </View>
+        </Animated.View>
       </View>
     )
   }
@@ -90,14 +120,35 @@ export default class reactNativeParalax extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#333'
+    padding: 30
   },
-  seperator: {
-    backgroundColor: '#000',
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 5
+  modal: {
+    flex: 1,
+    borderRadius: 15,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#333'
+  },
+  comments: {
+    flex: 1
+  },
+  fakeText: {
+    padding: 15,
+    textAlign: 'center'
+  },
+  fakeComments: {
+    height: 1000,
+    backgroundColor: '#f1f1f1'
+  },
+  inputWrap: {
+    flexDirection: 'row',
+    paddingHorizontal: 15
+  },
+  textInput: {
+    flex: 1,
+    height: 50,
+    borderTopWidth: 1,
+    borderTopColor: '#000'
   }
 })
 
